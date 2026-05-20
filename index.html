@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>KM.PRÜF – Kilometerstand Prüfung</title>
+<title>ITB.BERICHTE – Auswertung</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
@@ -36,7 +36,7 @@
   header {
     width: 100%;
     max-width: 960px;
-    margin-bottom: 40px;
+    margin-bottom: 24px;
     border-bottom: 1px solid var(--border);
     padding-bottom: 24px;
   }
@@ -45,8 +45,27 @@
   h1 span { color: var(--accent); }
   .subtitle { font-size: 0.7rem; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 6px; }
 
-  .drop-zone {
+  /* ── TABS ── */
+  .tabs {
     width: 100%; max-width: 960px;
+    display: flex; gap: 4px; margin-bottom: 32px;
+    border-bottom: 1px solid var(--border);
+  }
+  .tab {
+    padding: 12px 22px; background: transparent; color: var(--muted);
+    font-family: 'Syne', Arial, sans-serif; font-weight: 700; font-size: 0.82rem;
+    border: none; border-bottom: 2px solid transparent; cursor: pointer;
+    letter-spacing: 0.06em; transition: color 0.15s, border-color 0.15s;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .view { display: none; width: 100%; max-width: 960px; flex-direction: column; align-items: center; }
+  .view.active { display: flex; }
+
+  /* ── DROP-ZONE ── */
+  .drop-zone {
+    width: 100%;
     border: 2px dashed var(--border);
     border-radius: 4px;
     padding: 40px 32px 32px;
@@ -62,7 +81,7 @@
 
   .file-row { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; margin-top: 4px; }
 
-  #file-input { display: none; }
+  input[type="file"] { display: none; }
 
   .btn-choose {
     display: inline-flex; align-items: center; gap: 8px;
@@ -91,16 +110,41 @@
     color: var(--accent); margin-bottom: 16px;
   }
 
+  /* ── FILE-LIST (Merger) ── */
+  .file-list { width: 100%; margin-top: 20px; }
+  .file-item {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 2px; padding: 10px 14px; margin-bottom: 6px;
+    font-size: 0.78rem;
+  }
+  .file-item .idx {
+    font-family: 'Syne', Arial, sans-serif; font-weight: 800; color: var(--accent);
+    min-width: 24px;
+  }
+  .file-item .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file-item .actions { display: flex; gap: 4px; }
+  .icon-btn {
+    background: transparent; border: 1px solid var(--border);
+    color: var(--muted); cursor: pointer; padding: 4px 10px;
+    border-radius: 2px; font-size: 0.75rem; transition: all 0.15s;
+    font-family: inherit;
+  }
+  .icon-btn:hover { color: var(--accent); border-color: var(--accent); }
+  .icon-btn.del:hover { color: var(--red); border-color: var(--red); }
+
+  /* ── STATUS / LOADING ── */
   .status-bar {
-    width: 100%; max-width: 960px; margin-top: 20px;
+    width: 100%; margin-top: 20px;
     padding: 14px 20px; background: var(--surface);
     border-left: 3px solid var(--accent); font-size: 0.8rem; display: none;
   }
   .status-bar.visible { display: block; }
   .status-bar.error   { border-color: var(--red); color: var(--red); }
+  .status-bar.success { border-color: var(--green); color: var(--green); }
 
   .loading {
-    display: none; width: 100%; max-width: 960px;
+    display: none; width: 100%;
     margin-top: 24px; text-align: center;
     padding: 32px; color: var(--muted); font-size: 0.8rem;
   }
@@ -115,7 +159,7 @@
   @keyframes spin { to { transform: rotate(360deg); } }
 
   /* ── RESULTS ── */
-  .results { width: 100%; max-width: 960px; margin-top: 32px; display: none; }
+  .results { width: 100%; margin-top: 32px; display: none; }
   .results.visible { display: block; }
 
   .results-header {
@@ -128,7 +172,6 @@
   .badge-red   { background: rgba(255,68,68,0.15);  color: var(--red);   border: 1px solid rgba(255,68,68,0.3); }
   .badge-green { background: rgba(68,255,136,0.12); color: var(--green); border: 1px solid rgba(68,255,136,0.25); }
 
-  /* summary grid */
   .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
   .stat-box { background: var(--surface); border: 1px solid var(--border); padding: 16px 20px; border-radius: 2px; }
   .stat-label { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; }
@@ -137,7 +180,6 @@
   .stat-value.green  { color: var(--green); }
   .stat-value.yellow { color: var(--accent); }
 
-  /* Kennzeichen chips */
   .kz-section { margin-bottom: 28px; }
   .kz-header {
     display: flex; align-items: center; gap: 12px;
@@ -154,7 +196,6 @@
   .kz-body { display: block; }
   .kz-body.collapsed { display: none; }
 
-  /* Download row */
   .dl-row { display: flex; justify-content: flex-end; margin-bottom: 16px; }
   .btn-dl {
     display: inline-flex; align-items: center; gap: 8px;
@@ -165,7 +206,6 @@
   }
   .btn-dl:hover { background: rgba(232,255,71,0.08); }
 
-  /* table */
   .error-table-wrap { overflow-x: auto; }
   table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
   thead tr { background: var(--surface); border-bottom: 1px solid var(--border); }
@@ -200,7 +240,6 @@
   .all-ok .big { font-family: 'Syne', Arial, sans-serif; font-size: 2.4rem; font-weight: 800; color: var(--green); margin-bottom: 8px; }
   .all-ok .sub { font-size: 0.78rem; color: var(--muted); }
 
-  /* affected KZ list */
   .kz-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
   .kz-chip {
     padding: 5px 14px; border-radius: 2px; font-size: 0.72rem;
@@ -208,6 +247,30 @@
   }
   .kz-chip.bad  { background: rgba(255,68,68,0.15);  color: var(--red);   border: 1px solid rgba(255,68,68,0.3); }
   .kz-chip.good { background: rgba(68,255,136,0.10); color: var(--green); border: 1px solid rgba(68,255,136,0.2); }
+  .kz-chip.active { background: rgba(232,255,71,0.12); color: var(--accent); border: 1px solid rgba(232,255,71,0.35); }
+  .kz-chip.pto    { background: rgba(68,255,136,0.12); color: var(--green);  border: 1px solid rgba(68,255,136,0.35); }
+  .kz-chip.idle   { background: var(--surface); color: var(--muted); border: 1px solid var(--border); }
+  .kz-chip .pto-tag {
+    display: inline-block; margin-left: 6px; padding: 1px 6px;
+    background: rgba(68,255,136,0.18); color: var(--green);
+    border-radius: 2px; font-size: 0.62rem; letter-spacing: 0.08em;
+  }
+
+  .kz-overview {
+    width: 100%; margin-top: 24px; padding: 16px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 2px;
+  }
+  .kz-overview-title {
+    font-family: 'Syne', Arial, sans-serif; font-weight: 700; font-size: 0.78rem;
+    letter-spacing: 0.06em; color: var(--muted); text-transform: uppercase;
+    margin-bottom: 12px; display: flex; align-items: center; gap: 10px;
+  }
+  .kz-overview-title .count {
+    color: var(--accent); font-size: 0.72rem;
+  }
+  .kz-overview-empty {
+    font-size: 0.72rem; color: var(--muted); text-align: center; padding: 8px;
+  }
 
   @media (max-width: 600px) {
     .summary-grid { grid-template-columns: repeat(2,1fr); }
@@ -217,456 +280,576 @@
 <body>
 
 <header>
-  <h1>KM<span>.</span>PRÜF</h1>
-  <div class="subtitle">Kilometerstand-Prüfung · Fahrtenbuch · Multi-Fahrzeug</div>
+  <h1>ITB<span>.</span>BERICHTE</h1>
 </header>
 
-<input type="file" id="file-input" accept=".xlsx">
+<nav class="tabs">
+  <button class="tab active" data-view="pruef">KM-Pruefung</button>
+  <button class="tab" data-view="merge">PTO-Erkennung</button>
+</nav>
 
-<div class="drop-zone" id="drop-zone">
-  <span class="drop-icon">📂</span>
-  <div class="drop-label">XLSX-Datei hier ablegen</div>
-  <div class="drop-sub">Datei mit mehreren Fahrzeugen (Kennzeichen werden automatisch erkannt)</div>
-  <div id="filename-display"></div>
-  <div class="file-row">
-    <label for="file-input" class="btn-choose">📁 Datei auswählen</label>
-    <button class="btn-run" id="run-btn" disabled>▶ Prüfung starten</button>
-  </div>
-</div>
+<!-- ════════════════════════════════════════════════════════════════
+     VIEW 1 – KM-PRUEFUNG
+     ════════════════════════════════════════════════════════════════ -->
+<section class="view active" id="view-pruef">
 
-<div class="status-bar" id="status-bar"></div>
-<div class="loading" id="loading"><span class="spinner"></span>Datei wird analysiert…</div>
+  <input type="file" id="pruef-file-input" accept=".xlsx">
 
-<div class="results" id="results">
-  <div class="results-header">
-    <div class="results-title">Prüfergebnis</div>
-    <div id="result-badge"></div>
-  </div>
-
-  <div class="summary-grid">
-    <div class="stat-box">
-      <div class="stat-label">Fahrzeuge gesamt</div>
-      <div class="stat-value yellow" id="stat-vehicles">—</div>
-    </div>
-    <div class="stat-box">
-      <div class="stat-label">Fahrten gesamt</div>
-      <div class="stat-value yellow" id="stat-total">—</div>
-    </div>
-    <div class="stat-box">
-      <div class="stat-label">Fehler gefunden</div>
-      <div class="stat-value red" id="stat-errors">—</div>
-    </div>
-    <div class="stat-box">
-      <div class="stat-label">Betroffene Fahrzeuge</div>
-      <div class="stat-value red" id="stat-affected">—</div>
+  <div class="drop-zone" id="pruef-drop">
+    <span class="drop-icon">📂</span>
+    <div class="drop-label">XLSX-Datei hier ablegen</div>
+    <div class="drop-sub">Erkennt Kilometerspruenge aus dem Fahrten-Bericht (Es koennen auch mehrere Fahrzeuge gleichzeitig ausgewertet werden)</div>
+    <div id="pruef-filename"></div>
+    <div class="file-row">
+      <label for="pruef-file-input" class="btn-choose">📁 Datei auswaehlen</label>
+      <button class="btn-run" id="pruef-run" disabled>▶ Pruefung starten</button>
     </div>
   </div>
 
-  <div id="kz-chips-wrap" class="kz-chips"></div>
+  <div class="status-bar" id="pruef-status"></div>
+  <div class="loading" id="pruef-loading"><span class="spinner"></span>Datei wird analysiert…</div>
 
-  <div id="dl-row-wrap" style="display:none" class="dl-row">
-    <button class="btn-dl" id="dl-btn">⬇ Markierte XLSX herunterladen</button>
+  <div class="results" id="pruef-results">
+    <div class="results-header">
+      <div class="results-title">Pruefergebnis</div>
+      <div id="result-badge"></div>
+    </div>
+
+    <div class="summary-grid">
+      <div class="stat-box"><div class="stat-label">Fahrzeuge gesamt</div><div class="stat-value yellow" id="stat-vehicles">—</div></div>
+      <div class="stat-box"><div class="stat-label">Fahrten gesamt</div><div class="stat-value yellow" id="stat-total">—</div></div>
+      <div class="stat-box"><div class="stat-label">Fehler gefunden</div><div class="stat-value red" id="stat-errors">—</div></div>
+      <div class="stat-box"><div class="stat-label">Betroffene Fahrzeuge</div><div class="stat-value red" id="stat-affected">—</div></div>
+    </div>
+
+    <div id="kz-chips-wrap" class="kz-chips"></div>
+
+    <div id="dl-row-wrap" style="display:none" class="dl-row">
+      <button class="btn-dl" id="dl-btn">⬇ Markierte XLSX herunterladen</button>
+    </div>
+
+    <div id="result-content"></div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════
+     VIEW 2 – BERICHTE ZUSAMMENFUEHREN
+     ════════════════════════════════════════════════════════════════ -->
+<section class="view" id="view-merge">
+
+  <input type="file" id="merge-file-input" accept=".xlsx" multiple>
+
+  <div class="drop-zone" id="merge-drop">
+    <span class="drop-icon">⚙</span>
+    <div class="drop-label">XLSX-Dateien hier ablegen</div>
+    <div class="drop-sub">Erkennt automatisch alle Kennzeichen mit mindestens einem aktiven PTO-Event</div>
+    <div class="file-row">
+      <label for="merge-file-input" class="btn-choose">📁 Dateien auswaehlen</label>
+    </div>
+    <div class="file-list" id="merge-list"></div>
   </div>
 
-  <div id="result-content"></div>
-</div>
+  <div class="kz-overview" id="merge-kz-overview" style="display:none">
+    <div class="kz-overview-title">
+      <span>Kennzeichen mit aktivem PTO</span>
+      <span class="count" id="merge-kz-count"></span>
+    </div>
+    <div id="merge-kz-chips"></div>
+  </div>
+
+  <div class="status-bar" id="merge-status"></div>
+  <div class="loading" id="merge-loading"><span class="spinner"></span>Dateien werden analysiert…</div>
+</section>
 
 <script>
-  var currentFile  = null;
-  var errorRowsRef = [];
-  var rawFileRef   = null;
-
-  var fileInput = document.getElementById('file-input');
-  var runBtn    = document.getElementById('run-btn');
-  var dropZone  = document.getElementById('drop-zone');
-
-  fileInput.addEventListener('change', function(e) {
-    if (e.target.files[0]) setFile(e.target.files[0]);
+/* ════════════════════════════════════════════════════════════════
+   TAB SWITCHING
+   ════════════════════════════════════════════════════════════════ */
+document.querySelectorAll('.tab').forEach(function(tab) {
+  tab.addEventListener('click', function() {
+    var view = tab.dataset.view;
+    document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+    document.querySelectorAll('.view').forEach(function(v) { v.classList.remove('active'); });
+    tab.classList.add('active');
+    document.getElementById('view-' + view).classList.add('active');
   });
-  dropZone.addEventListener('dragover',  function(e) { e.preventDefault(); dropZone.classList.add('drag-over'); });
-  dropZone.addEventListener('dragleave', function()  { dropZone.classList.remove('drag-over'); });
-  dropZone.addEventListener('drop', function(e) {
-    e.preventDefault(); dropZone.classList.remove('drag-over');
-    if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]);
-  });
+});
 
-  function setFile(file) {
-    currentFile = file;
-    document.getElementById('filename-display').innerHTML = '<div class="filename-chip">✓ ' + file.name + '</div>';
-    runBtn.disabled = false;
-    dropZone.classList.add('has-file');
-    hideResults();
-    setStatus('', '');
+/* ════════════════════════════════════════════════════════════════
+   VIEW 1 – KM-PRUEFUNG
+   ════════════════════════════════════════════════════════════════ */
+var currentFile  = null;
+var errorRowsRef = [];
+var rawFileRef   = null;
+
+var pruefInput = document.getElementById('pruef-file-input');
+var pruefRun   = document.getElementById('pruef-run');
+var pruefDrop  = document.getElementById('pruef-drop');
+
+pruefInput.addEventListener('change', function(e) {
+  if (e.target.files[0]) setPruefFile(e.target.files[0]);
+});
+pruefDrop.addEventListener('dragover',  function(e) { e.preventDefault(); pruefDrop.classList.add('drag-over'); });
+pruefDrop.addEventListener('dragleave', function()  { pruefDrop.classList.remove('drag-over'); });
+pruefDrop.addEventListener('drop', function(e) {
+  e.preventDefault(); pruefDrop.classList.remove('drag-over');
+  if (e.dataTransfer.files[0]) setPruefFile(e.dataTransfer.files[0]);
+});
+
+function setPruefFile(file) {
+  currentFile = file;
+  document.getElementById('pruef-filename').innerHTML = '<div class="filename-chip">✓ ' + file.name + '</div>';
+  pruefRun.disabled = false;
+  pruefDrop.classList.add('has-file');
+  hidePruefResults();
+  setStatus('pruef-status', '', '');
+}
+
+pruefRun.addEventListener('click', function() {
+  if (!currentFile) return;
+  pruefRun.disabled = true;
+  document.getElementById('pruef-loading').classList.add('visible');
+  hidePruefResults();
+  setStatus('pruef-status', '', '');
+
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      rawFileRef = e.target.result;
+      var data = new Uint8Array(rawFileRef);
+      var wb = XLSX.read(data, { type: 'array', cellStyles: true, cellNF: true, cellDates: true, sheetStubs: true });
+      var ws = wb.Sheets[wb.SheetNames[0]];
+      analyze(ws);
+    } catch(err) {
+      document.getElementById('pruef-loading').classList.remove('visible');
+      setStatus('pruef-status', 'Fehler beim Lesen: ' + err.message, 'error');
+      pruefRun.disabled = false;
+    }
+  };
+  reader.readAsArrayBuffer(currentFile);
+});
+
+function cellVal(ws, r, c) {
+  var cell = ws[XLSX.utils.encode_cell({ r: r, c: c })];
+  return cell ? cell.v : undefined;
+}
+
+function extractKennzeichen(str) {
+  if (typeof str !== 'string') return null;
+  var m = str.match(/\/\s*([A-ZAEOEUE0-9][\w\s\-]{1,12})$/i);
+  if (m) return m[1].trim().toUpperCase();
+  var m2 = str.match(/Fahrten\s*[-–]\s*([A-ZAEOEUE0-9][\w\s\-]{1,12})$/i);
+  if (m2) return m2[1].trim().toUpperCase();
+  return null;
+}
+
+function formatTime(val) {
+  if (!val) return '';
+  if (val instanceof Date) {
+    return val.getHours().toString().padStart(2,'0') + ':' + val.getMinutes().toString().padStart(2,'0');
   }
+  if (typeof val === 'number' && val < 1) {
+    var totalMin = Math.round(val * 24 * 60);
+    var h = Math.floor(totalMin / 60);
+    var min = totalMin % 60;
+    return h.toString().padStart(2,'0') + ':' + min.toString().padStart(2,'0');
+  }
+  return String(val);
+}
 
-  runBtn.addEventListener('click', function() {
-    if (!currentFile) return;
-    runBtn.disabled = true;
-    document.getElementById('loading').classList.add('visible');
-    hideResults();
-    setStatus('', '');
+function analyze(ws) {
+  var range = XLSX.utils.decode_range(ws['!ref']);
+  var maxRow = range.e.r;
+  var groups = [];
+  var currentKZ = null;
+  var currentGroup = null;
+  var prevKmStand = null;
+  var currentDatum = '—';
 
-    var reader = new FileReader();
-    reader.onload = function(e) {
-      try {
-        rawFileRef = e.target.result;
-        var data = new Uint8Array(rawFileRef);
-        var wb = XLSX.read(data, { type: 'array', cellStyles: true, cellNF: true, cellDates: true, sheetStubs: true });
-        var ws = wb.Sheets[wb.SheetNames[0]];
-        analyze(ws);
-      } catch(err) {
-        document.getElementById('loading').classList.remove('visible');
-        setStatus('Fehler beim Lesen: ' + err.message, 'error');
-        runBtn.disabled = false;
+  for (var r = 0; r <= maxRow; r++) {
+    var foundKZ = null;
+    var foundDatum = null;
+    for (var c = 0; c <= Math.min(range.e.c, 15); c++) {
+      var v = cellVal(ws, r, c);
+      if (typeof v === 'string') {
+        if (!foundDatum) {
+          var dm = v.match(/(\d{2})\.(\d{2})\.(\d{4})/);
+          if (dm) foundDatum = dm[1] + '.' + dm[2] + '.' + dm[3];
+        }
+        var kz = extractKennzeichen(v);
+        if (kz && !foundKZ) foundKZ = kz;
       }
-    };
-    reader.readAsArrayBuffer(currentFile);
+    }
+    if (foundDatum) currentDatum = foundDatum;
+
+    if (foundKZ && foundKZ !== currentKZ) {
+      currentKZ = foundKZ;
+      currentGroup = { kz: foundKZ, rows: [], errorRows: [] };
+      groups.push(currentGroup);
+      prevKmStand = null;
+      continue;
+    }
+
+    if (!currentGroup) continue;
+
+    var kmStand = cellVal(ws, r, 10);
+    var km      = cellVal(ws, r, 8);
+    var start   = cellVal(ws, r, 0);
+    var stop    = cellVal(ws, r, 1);
+
+    if (typeof kmStand === 'number' && kmStand > 10000) {
+      var kmVal = (typeof km === 'number') ? km : 0;
+      var row = {
+        excelRow: r + 1, datum: currentDatum,
+        start: formatTime(start) || (start ? String(start) : ''),
+        stop:  formatTime(stop)  || (stop  ? String(stop)  : ''),
+        km: kmVal, kmStand: kmStand, error: false, expectedKm: null
+      };
+      if (prevKmStand !== null) {
+        var diff = Math.round((kmStand - prevKmStand) * 10) / 10;
+        var kmValRounded = Math.round(kmVal * 10) / 10;
+        if (diff > 0 && Math.round(Math.abs(kmValRounded - diff) * 10) / 10 > 0.1) {
+          row.error = true; row.expectedKm = diff;
+          currentGroup.errorRows.push(row);
+          errorRowsRef.push(row);
+        }
+      }
+      currentGroup.rows.push(row);
+      prevKmStand = kmStand;
+    }
+  }
+
+  document.getElementById('pruef-loading').classList.remove('visible');
+  showResults(groups);
+  pruefRun.disabled = false;
+}
+
+function showResults(groups) {
+  var totalTrips = 0, totalErrors = 0, affectedKZs = 0;
+  groups.forEach(function(g) {
+    totalTrips  += g.rows.length;
+    totalErrors += g.errorRows.length;
+    if (g.errorRows.length > 0) affectedKZs++;
   });
 
-  function cellVal(ws, r, c) {
-    var cell = ws[XLSX.utils.encode_cell({ r: r, c: c })];
-    return cell ? cell.v : undefined;
-  }
+  document.getElementById('stat-vehicles').textContent = groups.length;
+  document.getElementById('stat-total').textContent    = totalTrips;
+  document.getElementById('stat-errors').textContent   = totalErrors;
+  document.getElementById('stat-affected').textContent = affectedKZs;
 
-  // Extract Kennzeichen from strings like "Mittwoch, 07.01.2026 / SO 194DU"
-  // or "Fahrten - SO 194DU"
-  function extractKennzeichen(str) {
-    if (typeof str !== 'string') return null;
-    // After " / " at end of date-header lines
-    var m = str.match(/\/\s*([A-ZÄÖÜ0-9][\w\s\-]{1,12})$/i);
-    if (m) return m[1].trim().toUpperCase();
-    // After "Fahrten -" in title lines
-    var m2 = str.match(/Fahrten\s*[-–]\s*([A-ZÄÖÜ0-9][\w\s\-]{1,12})$/i);
-    if (m2) return m2[1].trim().toUpperCase();
-    return null;
-  }
+  document.getElementById('result-badge').innerHTML = totalErrors === 0
+    ? '<span class="badge badge-green">✓ Alle Zeilen korrekt</span>'
+    : '<span class="badge badge-red">⚠ ' + totalErrors + ' Fehler in ' + affectedKZs + ' Fahrzeug(en)</span>';
 
-  function formatDatum(val) {
-    if (!val) return '—';
-    // Already a JS Date
-    if (val instanceof Date) {
-      var d = val.getDate().toString().padStart(2,'0');
-      var m = (val.getMonth()+1).toString().padStart(2,'0');
-      var y = val.getFullYear();
-      return d + '.' + m + '.' + y;
-    }
-    // Number (Excel serial date)
-    if (typeof val === 'number') {
-      var dateObj = new Date(Math.round((val - 25569) * 86400 * 1000));
-      var d = dateObj.getUTCDate().toString().padStart(2,'0');
-      var m = (dateObj.getUTCMonth()+1).toString().padStart(2,'0');
-      var y = dateObj.getUTCFullYear();
-      return d + '.' + m + '.' + y;
-    }
-    // String – try to extract a date pattern dd.mm.yyyy
-    if (typeof val === 'string') {
-      var m2 = val.match(/(\d{2})\.(\d{2})\.(\d{4})/);
-      if (m2) return m2[1] + '.' + m2[2] + '.' + m2[3];
-      // fallback: return as-is, trimmed
-      return val.trim();
-    }
-    return String(val);
-  }
+  var chipsHtml = '';
+  groups.forEach(function(g) {
+    var cls = g.errorRows.length > 0 ? 'bad' : 'good';
+    var icon = g.errorRows.length > 0 ? '⚠ ' : '✓ ';
+    chipsHtml += '<div class="kz-chip ' + cls + '">' + icon + g.kz;
+    if (g.errorRows.length > 0) chipsHtml += ' (' + g.errorRows.length + ')';
+    chipsHtml += '</div>';
+  });
+  document.getElementById('kz-chips-wrap').innerHTML = chipsHtml;
 
-  function formatTime(val) {
-    if (!val) return '';
-    if (val instanceof Date) {
-      return val.getHours().toString().padStart(2,'0') + ':' + val.getMinutes().toString().padStart(2,'0');
-    }
-    if (typeof val === 'number' && val < 1) {
-      // fractional day
-      var totalMin = Math.round(val * 24 * 60);
-      var h = Math.floor(totalMin / 60);
-      var min = totalMin % 60;
-      return h.toString().padStart(2,'0') + ':' + min.toString().padStart(2,'0');
-    }
-    return String(val);
+  var content = document.getElementById('result-content');
+  if (totalErrors === 0) {
+    content.innerHTML =
+      '<div class="all-ok"><div class="big">✓ ALLES OK</div>' +
+      '<div class="sub">Alle ' + totalTrips + ' Fahrten bei ' + groups.length + ' Fahrzeug(en) haben korrekte Kilometerangaben.</div></div>';
+    document.getElementById('dl-row-wrap').style.display = 'none';
+  } else {
+    var html = '';
+    groups.forEach(function(g) {
+      var hasErrors = g.errorRows.length > 0;
+      var headerCls = 'kz-header' + (hasErrors ? ' error-kz' : '');
+      var icon = hasErrors ? '⚠' : '✓';
+      html += '<div class="kz-section"><div class="' + headerCls + '" onclick="toggleSection(this)">';
+      html += '<span>' + icon + '</span><span class="kz-name">' + g.kz + '</span>';
+      html += hasErrors
+        ? '<span class="kz-meta">' + g.errorRows.length + ' Fehler / ' + g.rows.length + ' Fahrten</span>'
+        : '<span class="kz-meta" style="color:var(--green)">' + g.rows.length + ' Fahrten – OK</span>';
+      html += '<span class="kz-toggle">▼</span></div>';
+      var bodyCls = hasErrors ? 'kz-body' : 'kz-body collapsed';
+      html += '<div class="' + bodyCls + '">';
+      if (hasErrors) {
+        html += '<div class="error-table-wrap"><table>';
+        html += '<thead><tr><th>Zeile</th><th>Kennzeichen</th><th>Datum</th><th>Zeit</th><th>KM-Stand</th><th>KM ist</th><th>KM soll</th><th>Status</th></tr></thead><tbody>';
+        g.errorRows.forEach(function(er) {
+          html += '<tr><td>' + er.excelRow + '</td>';
+          html += '<td><span style="color:var(--accent);font-weight:700">' + g.kz + '</span></td>';
+          html += '<td style="color:var(--muted)">' + er.datum + '</td>';
+          html += '<td>' + er.start + ' – ' + er.stop + '</td>';
+          html += '<td>' + Math.round(er.kmStand).toLocaleString('de') + '</td>';
+          html += '<td style="color:var(--red)">' + er.km + '</td>';
+          html += '<td style="color:var(--green)">' + er.expectedKm + '</td>';
+          html += '<td><span class="tag-x">X</span></td></tr>';
+        });
+        html += '</tbody></table></div>';
+        html += '<div class="ok-note">' + (g.rows.length - g.errorRows.length) + ' von ' + g.rows.length + ' Zeilen korrekt</div>';
+      } else {
+        html += '<div class="ok-note" style="color:var(--green)">✓ Alle ' + g.rows.length + ' Fahrten korrekt</div>';
+      }
+      html += '</div></div>';
+    });
+    content.innerHTML = html;
+    document.getElementById('dl-row-wrap').style.display = 'flex';
+    document.getElementById('dl-btn').onclick = downloadMarked;
   }
+  document.getElementById('pruef-results').classList.add('visible');
+}
 
-  function analyze(ws) {
+function toggleSection(header) {
+  var body = header.nextElementSibling;
+  var toggle = header.querySelector('.kz-toggle');
+  if (body.classList.contains('collapsed')) {
+    body.classList.remove('collapsed'); toggle.textContent = '▼';
+  } else {
+    body.classList.add('collapsed'); toggle.textContent = '▶';
+  }
+}
+
+function colLetter(n) {
+  var s = ''; n += 1;
+  while (n > 0) { var r = (n-1)%26; s = String.fromCharCode(65+r)+s; n = Math.floor((n-1)/26); }
+  return s;
+}
+
+function downloadMarked() {
+  JSZip.loadAsync(rawFileRef).then(function(zip) {
+    var sheetKey = null;
+    zip.forEach(function(path) {
+      if (!sheetKey && path.match(/xl\/worksheets\/sheet\d+\.xml/)) sheetKey = path;
+    });
+    if (!sheetKey) { alert('Kein Sheet gefunden.'); return; }
+    var stylesKey = 'xl/styles.xml';
+    Promise.all([
+      zip.file(sheetKey).async('string'),
+      zip.file(stylesKey) ? zip.file(stylesKey).async('string') : Promise.resolve(null)
+    ]).then(function(results) {
+      var sheetXml = results[0], stylesXml = results[1], styleIdx = 0;
+      if (stylesXml) {
+        var fillXml = '<fill><patternFill patternType="solid"><fgColor rgb="FFFF0000"/><bgColor indexed="64"/></patternFill></fill>';
+        var fillsMatch = stylesXml.match(/<fills count="(\d+)">/);
+        if (fillsMatch) {
+          stylesXml = stylesXml.replace(/<\/fills>/, fillXml + '</fills>');
+          stylesXml = stylesXml.replace(/<fills count="\d+">/, '<fills count="' + (parseInt(fillsMatch[1])+1) + '">');
+        }
+        var fontXml = '<font><b/><color rgb="FFFFFFFF"/><sz val="11"/><name val="Calibri"/></font>';
+        var fontsMatch = stylesXml.match(/<fonts count="(\d+)">/);
+        var fontIdx = 0;
+        if (fontsMatch) {
+          fontIdx = parseInt(fontsMatch[1]);
+          stylesXml = stylesXml.replace(/<\/fonts>/, fontXml + '</fonts>');
+          stylesXml = stylesXml.replace(/<fonts count="\d+">/, '<fonts count="' + (fontIdx+1) + '">');
+        }
+        var allFills = stylesXml.match(/<fill>/g);
+        var fillIdx = allFills ? allFills.length - 1 : 1;
+        var xfXml = '<xf numFmtId="0" fontId="' + fontIdx + '" fillId="' + fillIdx + '" borderId="0" xfId="0" applyFont="1" applyFill="1"><alignment horizontal="center" vertical="center"/></xf>';
+        var cellXfsMatch = stylesXml.match(/<cellXfs count="(\d+)">/);
+        if (cellXfsMatch) {
+          styleIdx = parseInt(cellXfsMatch[1]);
+          stylesXml = stylesXml.replace(/<\/cellXfs>/, xfXml + '</cellXfs>');
+          stylesXml = stylesXml.replace(/<cellXfs count="\d+">/, '<cellXfs count="' + (styleIdx+1) + '">');
+        }
+        zip.file(stylesKey, stylesXml);
+      }
+      var dimMatch = sheetXml.match(/<dimension ref="[^:]+:([A-Z]+)(\d+)"/);
+      var lastColLetter = dimMatch ? dimMatch[1] : 'Y';
+      var lastColIdx = 0;
+      for (var ci = 0; ci < lastColLetter.length; ci++) lastColIdx = lastColIdx * 26 + lastColLetter.charCodeAt(ci) - 64;
+      var xColLetter = colLetter(lastColIdx);
+      var errorRowNums = {};
+      errorRowsRef.forEach(function(er) { errorRowNums[er.excelRow] = true; });
+      sheetXml = sheetXml.replace(/<row r="(\d+)"([^>]*)>([\s\S]*?)<\/row>/g, function(match, rowNum, attrs, inner) {
+        if (!errorRowNums[parseInt(rowNum)]) return match;
+        var cellRef = xColLetter + rowNum;
+        if (inner.indexOf('r="' + cellRef + '"') !== -1) return match;
+        var newCell = '<c r="' + cellRef + '" t="inlineStr" s="' + styleIdx + '"><is><t>X</t></is></c>';
+        return '<row r="' + rowNum + '"' + attrs + '>' + inner + newCell + '</row>';
+      });
+      sheetXml = sheetXml.replace(/<dimension ref="([^:]+):([A-Z]+)(\d+)"/, function(m, start, col, row) {
+        return '<dimension ref="' + start + ':' + xColLetter + row + '"';
+      });
+      zip.file(sheetKey, sheetXml);
+      zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+        .then(function(blob) {
+          var fname = currentFile.name.replace('.xlsx', '') + '_geprueft.xlsx';
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement('a'); a.href = url; a.download = fname; a.click();
+          URL.revokeObjectURL(url);
+        });
+    });
+  });
+}
+
+function hidePruefResults() {
+  document.getElementById('pruef-results').classList.remove('visible');
+  document.getElementById('dl-row-wrap').style.display = 'none';
+  errorRowsRef = [];
+}
+
+function setStatus(id, msg, type) {
+  var bar = document.getElementById(id);
+  bar.textContent = msg;
+  bar.className = 'status-bar' + (msg ? ' visible' : '') + (type ? ' ' + type : '');
+}
+
+/* ════════════════════════════════════════════════════════════════
+   VIEW 2 – BERICHTE ZUSAMMENFUEHREN
+   ════════════════════════════════════════════════════════════════ */
+var mergeFiles = [];
+var mergeAnalysisCache = new Map();
+var mergeInput = document.getElementById('merge-file-input');
+var mergeDrop  = document.getElementById('merge-drop');
+
+mergeInput.addEventListener('change', function(e) {
+  addMergeFiles(Array.from(e.target.files));
+  mergeInput.value = '';
+});
+mergeDrop.addEventListener('dragover',  function(e) { e.preventDefault(); mergeDrop.classList.add('drag-over'); });
+mergeDrop.addEventListener('dragleave', function()  { mergeDrop.classList.remove('drag-over'); });
+mergeDrop.addEventListener('drop', function(e) {
+  e.preventDefault(); mergeDrop.classList.remove('drag-over');
+  var files = Array.from(e.dataTransfer.files).filter(function(f) { return f.name.toLowerCase().endsWith('.xlsx'); });
+  addMergeFiles(files);
+});
+
+function addMergeFiles(files) {
+  files.forEach(function(f) { mergeFiles.push(f); });
+  renderMergeList();
+  analyzeMergeFiles();
+}
+
+function renderMergeList() {
+  var list = document.getElementById('merge-list');
+  if (mergeFiles.length === 0) {
+    list.innerHTML = '';
+    mergeDrop.classList.remove('has-file');
+    return;
+  }
+  mergeDrop.classList.add('has-file');
+  var html = '';
+  mergeFiles.forEach(function(f, i) {
+    html += '<div class="file-item">';
+    html += '<span class="idx">' + (i+1) + '.</span>';
+    html += '<span class="name">' + f.name + '</span>';
+    html += '<span class="actions">';
+    html += '<button class="icon-btn del" onclick="removeMerge(' + i + ')" title="entfernen">✕</button>';
+    html += '</span></div>';
+  });
+  list.innerHTML = html;
+}
+function removeMerge(idx) {
+  mergeFiles.splice(idx, 1);
+  renderMergeList();
+  setStatus('merge-status', '', '');
+  renderKzOverview();
+}
+
+/* ── Input-Erkennung ────────────────────────────────────────────── */
+function analyzeFileForInput(file) {
+  if (mergeAnalysisCache.has(file)) return Promise.resolve(mergeAnalysisCache.get(file));
+  return readFileBuf(file).then(function(buf) {
+    var data = new Uint8Array(buf);
+    var wb = XLSX.read(data, { type: 'array', sheetStubs: true });
+    var ws = wb.Sheets[wb.SheetNames[0]];
+    if (!ws || !ws['!ref']) return { kzMap: {} };
     var range = XLSX.utils.decode_range(ws['!ref']);
     var maxRow = range.e.r;
-
-    // Group rows by Kennzeichen
-    // Each group: { kz, rows: [{excelRow, datum, start, stop, km, kmStand, error, expectedKm}] }
-    var groups = [];
+    var maxCol = Math.min(range.e.c, 20);
     var currentKZ = null;
-    var currentGroup = null;
-    var prevKmStand = null;
-    var currentDatum = '—'; // date extracted from section header lines
+    var kzMap = {};
 
     for (var r = 0; r <= maxRow; r++) {
-      // Scan all cells in row for a Kennzeichen marker AND a date string
-      var foundKZ = null;
-      var foundDatum = null;
-      for (var c = 0; c <= Math.min(range.e.c, 15); c++) {
+      var rowKZ = null;
+      var rowHasInput = false;
+      var rowHasPTO = false;
+      for (var c = 0; c <= maxCol; c++) {
         var v = cellVal(ws, r, c);
-        if (typeof v === 'string') {
-          // Extract date from header like "Mittwoch, 08.04.2026 / Bürobox"
-          if (!foundDatum) {
-            var dm = v.match(/(\d{2})\.(\d{2})\.(\d{4})/);
-            if (dm) foundDatum = dm[1] + '.' + dm[2] + '.' + dm[3];
-          }
-          var kz = extractKennzeichen(v);
-          if (kz && !foundKZ) foundKZ = kz;
+        if (typeof v !== 'string') continue;
+        if (!rowKZ) {
+          var km = v.match(/\/\s*([A-Z]{1,3}\s*\d{1,4}\s*[A-Z]{1,3})\b/);
+          if (km) rowKZ = km[1].replace(/\s+/g, ' ').trim().toUpperCase();
         }
+        if (/Input\s*\d+\s*ein/i.test(v)) rowHasInput = true;
+        if (/^[o0-9]{6}$/i.test(v) && /[1-9]/.test(v)) rowHasInput = true;
+        if (/\bNA\s*ein\b/i.test(v)) rowHasPTO = true;
       }
-      // Update running date whenever a header row contains a date
-      if (foundDatum) currentDatum = foundDatum;
-
-      if (foundKZ && foundKZ !== currentKZ) {
-        // New Kennzeichen section → new group, reset KM-Stand tracking
-        currentKZ = foundKZ;
-        currentGroup = { kz: foundKZ, rows: [], errorRows: [] };
-        groups.push(currentGroup);
-        prevKmStand = null;
-        continue;
+      if (rowKZ) {
+        currentKZ = rowKZ;
+        if (!kzMap[currentKZ]) kzMap[currentKZ] = { hasInput: false, hasPTO: false, count: 0, ptoCount: 0 };
       }
-
-      if (!currentGroup) continue; // rows before first KZ header → skip
-
-      var kmStand = cellVal(ws, r, 10); // col K
-      var km      = cellVal(ws, r, 8);  // col I
-      var start   = cellVal(ws, r, 0);  // col A – start time
-      var stop    = cellVal(ws, r, 1);  // col B – stop time
-
-      if (typeof kmStand === 'number' && kmStand > 10000) {
-        var kmVal = (typeof km === 'number') ? km : 0;
-        var row = {
-          excelRow: r + 1,
-          datum: currentDatum,
-          start: formatTime(start) || (start ? String(start) : ''),
-          stop:  formatTime(stop)  || (stop  ? String(stop)  : ''),
-          km:    kmVal,
-          kmStand: kmStand,
-          error: false,
-          expectedKm: null
-        };
-
-        if (prevKmStand !== null) {
-          var diff = Math.round((kmStand - prevKmStand) * 10) / 10;
-          var kmValRounded = Math.round(kmVal * 10) / 10;
-          if (diff > 0 && Math.round(Math.abs(kmValRounded - diff) * 10) / 10 > 0.1) {
-            row.error = true;
-            row.expectedKm = diff;
-            currentGroup.errorRows.push(row);
-            errorRowsRef.push(row);
-          }
-        }
-
-        currentGroup.rows.push(row);
-        prevKmStand = kmStand;
+      if (rowHasInput && currentKZ) {
+        kzMap[currentKZ].hasInput = true;
+        kzMap[currentKZ].count++;
+      }
+      if (rowHasPTO && currentKZ) {
+        kzMap[currentKZ].hasPTO = true;
+        kzMap[currentKZ].ptoCount++;
       }
     }
+    var result = { kzMap: kzMap };
+    mergeAnalysisCache.set(file, result);
+    return result;
+  }).catch(function() { return { kzMap: {} }; });
+}
 
-    document.getElementById('loading').classList.remove('visible');
-    showResults(groups);
-    runBtn.disabled = false;
+function analyzeMergeFiles() {
+  if (mergeFiles.length === 0) { renderKzOverview(); return; }
+  document.getElementById('merge-loading').classList.add('visible');
+  Promise.all(mergeFiles.map(analyzeFileForInput)).then(function(results) {
+    var combined = {};
+    results.forEach(function(res) {
+      Object.keys(res.kzMap).forEach(function(kz) {
+        if (!combined[kz]) combined[kz] = { hasInput: false, hasPTO: false, count: 0, ptoCount: 0 };
+        if (res.kzMap[kz].hasInput) combined[kz].hasInput = true;
+        if (res.kzMap[kz].hasPTO)   combined[kz].hasPTO   = true;
+        combined[kz].count    += res.kzMap[kz].count;
+        combined[kz].ptoCount += (res.kzMap[kz].ptoCount || 0);
+      });
+    });
+    document.getElementById('merge-loading').classList.remove('visible');
+    renderKzOverview(combined);
+  }).catch(function(err) {
+    document.getElementById('merge-loading').classList.remove('visible');
+    setStatus('merge-status', 'Fehler bei Analyse: ' + err.message, 'error');
+  });
+}
+
+function renderKzOverview(combined) {
+  var box = document.getElementById('merge-kz-overview');
+  var chipsEl = document.getElementById('merge-kz-chips');
+  var countEl = document.getElementById('merge-kz-count');
+  if (!combined || Object.keys(combined).length === 0) {
+    box.style.display = 'none';
+    return;
   }
-
-  function showResults(groups) {
-    var totalTrips   = 0;
-    var totalErrors  = 0;
-    var affectedKZs  = 0;
-
-    groups.forEach(function(g) {
-      totalTrips  += g.rows.length;
-      totalErrors += g.errorRows.length;
-      if (g.errorRows.length > 0) affectedKZs++;
-    });
-
-    document.getElementById('stat-vehicles').textContent = groups.length;
-    document.getElementById('stat-total').textContent    = totalTrips;
-    document.getElementById('stat-errors').textContent   = totalErrors;
-    document.getElementById('stat-affected').textContent = affectedKZs;
-
-    document.getElementById('result-badge').innerHTML = totalErrors === 0
-      ? '<span class="badge badge-green">✓ Alle Zeilen korrekt</span>'
-      : '<span class="badge badge-red">⚠ ' + totalErrors + ' Fehler in ' + affectedKZs + ' Fahrzeug(en)</span>';
-
-    // KZ chips
-    var chipsHtml = '';
-    groups.forEach(function(g) {
-      var cls = g.errorRows.length > 0 ? 'bad' : 'good';
-      var icon = g.errorRows.length > 0 ? '⚠ ' : '✓ ';
-      chipsHtml += '<div class="kz-chip ' + cls + '">' + icon + g.kz;
-      if (g.errorRows.length > 0) chipsHtml += ' (' + g.errorRows.length + ')';
-      chipsHtml += '</div>';
-    });
-    document.getElementById('kz-chips-wrap').innerHTML = chipsHtml;
-
-    var content = document.getElementById('result-content');
-
-    if (totalErrors === 0) {
-      content.innerHTML =
-        '<div class="all-ok">' +
-          '<div class="big">✓ ALLES OK</div>' +
-          '<div class="sub">Alle ' + totalTrips + ' Fahrten bei ' + groups.length + ' Fahrzeug(en) haben korrekte Kilometerangaben.</div>' +
-        '</div>';
-      document.getElementById('dl-row-wrap').style.display = 'none';
+  box.style.display = 'block';
+  var kzList = Object.keys(combined).sort();
+  var active = kzList.filter(function(k) { return combined[k].hasInput; });
+  countEl.textContent = active.length + ' von ' + kzList.length + ' aktiv';
+  var html = '<div class="kz-chips" style="margin-bottom:0">';
+  kzList.forEach(function(kz) {
+    var info = combined[kz];
+    if (info.hasInput) {
+      html += '<div class="kz-chip active" title="' + info.count + ' PTO-Events">⚙ ' + kz + ' (' + info.count + ')</div>';
     } else {
-      var html = '';
-
-      groups.forEach(function(g) {
-        var hasErrors = g.errorRows.length > 0;
-        var headerCls = 'kz-header' + (hasErrors ? ' error-kz' : '');
-        var icon = hasErrors ? '⚠' : '✓';
-
-        html += '<div class="kz-section">';
-        html += '<div class="' + headerCls + '" onclick="toggleSection(this)">';
-        html += '<span>' + icon + '</span>';
-        html += '<span class="kz-name">' + g.kz + '</span>';
-        if (hasErrors) {
-          html += '<span class="kz-meta">' + g.errorRows.length + ' Fehler / ' + g.rows.length + ' Fahrten</span>';
-        } else {
-          html += '<span class="kz-meta" style="color:var(--green)">' + g.rows.length + ' Fahrten – OK</span>';
-        }
-        html += '<span class="kz-toggle">▼</span>';
-        html += '</div>';
-
-        // Body – only show error rows if there are errors, else show "OK" note
-        var bodyCls = hasErrors ? 'kz-body' : 'kz-body collapsed';
-        html += '<div class="' + bodyCls + '">';
-
-        if (hasErrors) {
-          html += '<div class="error-table-wrap"><table>';
-          html += '<thead><tr><th>Zeile</th><th>Kennzeichen</th><th>Datum</th><th>Zeit</th><th>KM-Stand</th><th>KM ist</th><th>KM soll</th><th>Status</th></tr></thead><tbody>';
-          g.errorRows.forEach(function(er) {
-            html += '<tr>';
-            html += '<td>' + er.excelRow + '</td>';
-            html += '<td><span style="color:var(--accent);font-weight:700">' + g.kz + '</span></td>';
-            html += '<td style="color:var(--muted)">' + er.datum + '</td>';
-            html += '<td>' + er.start + ' – ' + er.stop + '</td>';
-            html += '<td>' + Math.round(er.kmStand).toLocaleString('de') + '</td>';
-            html += '<td style="color:var(--red)">' + er.km + '</td>';
-            html += '<td style="color:var(--green)">' + er.expectedKm + '</td>';
-            html += '<td><span class="tag-x">X</span></td>';
-            html += '</tr>';
-          });
-          html += '</tbody></table></div>';
-          html += '<div class="ok-note">' + (g.rows.length - g.errorRows.length) + ' von ' + g.rows.length + ' Zeilen korrekt</div>';
-        } else {
-          html += '<div class="ok-note" style="color:var(--green)">✓ Alle ' + g.rows.length + ' Fahrten korrekt</div>';
-        }
-
-        html += '</div></div>'; // kz-body + kz-section
-      });
-
-      content.innerHTML = html;
-      document.getElementById('dl-row-wrap').style.display = 'flex';
-      document.getElementById('dl-btn').onclick = downloadMarked;
+      html += '<div class="kz-chip idle">○ ' + kz + '</div>';
     }
+  });
+  html += '</div>';
+  chipsEl.innerHTML = html;
+}
 
-    document.getElementById('results').classList.add('visible');
-  }
+function readFileBuf(f) {
+  return new Promise(function(res, rej) {
+    var fr = new FileReader();
+    fr.onload = function(e) { res(e.target.result); };
+    fr.onerror = function() { rej(new Error('Konnte ' + f.name + ' nicht lesen')); };
+    fr.readAsArrayBuffer(f);
+  });
+}
 
-  function toggleSection(header) {
-    var body   = header.nextElementSibling;
-    var toggle = header.querySelector('.kz-toggle');
-    if (body.classList.contains('collapsed')) {
-      body.classList.remove('collapsed');
-      toggle.textContent = '▼';
-    } else {
-      body.classList.add('collapsed');
-      toggle.textContent = '▶';
-    }
-  }
-
-  /* ── DOWNLOAD ── */
-  function colLetter(n) {
-    var s = ''; n += 1;
-    while (n > 0) { var r = (n-1)%26; s = String.fromCharCode(65+r)+s; n = Math.floor((n-1)/26); }
-    return s;
-  }
-
-  function downloadMarked() {
-    JSZip.loadAsync(rawFileRef).then(function(zip) {
-      var sheetKey = null;
-      zip.forEach(function(path) {
-        if (!sheetKey && path.match(/xl\/worksheets\/sheet\d+\.xml/)) sheetKey = path;
-      });
-      if (!sheetKey) { alert('Kein Sheet gefunden.'); return; }
-
-      var stylesKey = 'xl/styles.xml';
-      Promise.all([
-        zip.file(sheetKey).async('string'),
-        zip.file(stylesKey) ? zip.file(stylesKey).async('string') : Promise.resolve(null)
-      ]).then(function(results) {
-        var sheetXml  = results[0];
-        var stylesXml = results[1];
-        var styleIdx  = 0;
-
-        if (stylesXml) {
-          var fillXml = '<fill><patternFill patternType="solid"><fgColor rgb="FFFF0000"/><bgColor indexed="64"/></patternFill></fill>';
-          var fillsMatch = stylesXml.match(/<fills count="(\d+)">/);
-          if (fillsMatch) {
-            stylesXml = stylesXml.replace(/<\/fills>/, fillXml + '</fills>');
-            stylesXml = stylesXml.replace(/<fills count="\d+">/, '<fills count="' + (parseInt(fillsMatch[1])+1) + '">');
-          }
-          var fontXml = '<font><b/><color rgb="FFFFFFFF"/><sz val="11"/><name val="Calibri"/></font>';
-          var fontsMatch = stylesXml.match(/<fonts count="(\d+)">/);
-          var fontIdx = 0;
-          if (fontsMatch) {
-            fontIdx = parseInt(fontsMatch[1]);
-            stylesXml = stylesXml.replace(/<\/fonts>/, fontXml + '</fonts>');
-            stylesXml = stylesXml.replace(/<fonts count="\d+">/, '<fonts count="' + (fontIdx+1) + '">');
-          }
-          var allFills = stylesXml.match(/<fill>/g);
-          var fillIdx  = allFills ? allFills.length - 1 : 1;
-          var xfXml = '<xf numFmtId="0" fontId="' + fontIdx + '" fillId="' + fillIdx + '" borderId="0" xfId="0" applyFont="1" applyFill="1"><alignment horizontal="center" vertical="center"/></xf>';
-          var cellXfsMatch = stylesXml.match(/<cellXfs count="(\d+)">/);
-          if (cellXfsMatch) {
-            styleIdx = parseInt(cellXfsMatch[1]);
-            stylesXml = stylesXml.replace(/<\/cellXfs>/, xfXml + '</cellXfs>');
-            stylesXml = stylesXml.replace(/<cellXfs count="\d+">/, '<cellXfs count="' + (styleIdx+1) + '">');
-          }
-          zip.file(stylesKey, stylesXml);
-        }
-
-        var dimMatch = sheetXml.match(/<dimension ref="[^:]+:([A-Z]+)(\d+)"/);
-        var lastColLetter = dimMatch ? dimMatch[1] : 'Y';
-        var lastColIdx = 0;
-        for (var ci = 0; ci < lastColLetter.length; ci++) lastColIdx = lastColIdx * 26 + lastColLetter.charCodeAt(ci) - 64;
-        var xColLetter = colLetter(lastColIdx);
-
-        var errorRowNums = {};
-        errorRowsRef.forEach(function(er) { errorRowNums[er.excelRow] = true; });
-
-        sheetXml = sheetXml.replace(/<row r="(\d+)"([^>]*)>([\s\S]*?)<\/row>/g, function(match, rowNum, attrs, inner) {
-          if (!errorRowNums[parseInt(rowNum)]) return match;
-          var cellRef = xColLetter + rowNum;
-          if (inner.indexOf('r="' + cellRef + '"') !== -1) return match;
-          var newCell = '<c r="' + cellRef + '" t="inlineStr" s="' + styleIdx + '"><is><t>X</t></is></c>';
-          return '<row r="' + rowNum + '"' + attrs + '>' + inner + newCell + '</row>';
-        });
-
-        sheetXml = sheetXml.replace(/<dimension ref="([^:]+):([A-Z]+)(\d+)"/, function(m, start, col, row) {
-          return '<dimension ref="' + start + ':' + xColLetter + row + '"';
-        });
-
-        zip.file(sheetKey, sheetXml);
-        zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-          .then(function(blob) {
-            var fname = currentFile.name.replace('.xlsx', '') + '_geprueft.xlsx';
-            var url = URL.createObjectURL(blob);
-            var a = document.createElement('a'); a.href = url; a.download = fname; a.click();
-            URL.revokeObjectURL(url);
-          });
-      });
-    });
-  }
-
-  function hideResults() {
-    document.getElementById('results').classList.remove('visible');
-    document.getElementById('dl-row-wrap').style.display = 'none';
-    errorRowsRef = [];
-  }
-
-  function setStatus(msg, type) {
-    var bar = document.getElementById('status-bar');
-    bar.textContent = msg;
-    bar.className = 'status-bar' + (msg ? ' visible' : '') + (type ? ' ' + type : '');
-  }
 </script>
 </body>
 </html>
